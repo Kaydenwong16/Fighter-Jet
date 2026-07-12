@@ -161,12 +161,12 @@
 <body>
 
 <section id="hero">
-  <video id="heroVideo" autoplay muted loop playsinline></video>
+  <video id="heroVideo" autoplay loop playsinline></video>
   <div id="heroOverlay">
     <h1>Kayden's Fun Zone 🌟</h1>
     <p>Watch, laugh, and take off on an adventure!</p>
   </div>
-  <button id="soundToggle" title="Toggle sound">🔇 Sound</button>
+  <button id="soundToggle" title="Toggle sound">🔊 Sound</button>
   <div id="bounceHint">⬇️</div>
 </section>
 
@@ -205,10 +205,34 @@ const chosen = videos[pickNextVideo()];
 heroVideo.src = encodeURI("/photo/" + chosen);
 
 const soundToggle = document.getElementById("soundToggle");
+function syncSoundToggle() {
+  soundToggle.textContent = heroVideo.muted ? "🔇 Sound" : "🔊 Sound";
+}
+
+// Sound is on by default. Most browsers block audible autoplay without a
+// prior user gesture, so try unmuted first; if that's blocked, fall back to
+// muted autoplay and unmute automatically on the visitor's first tap/click/
+// key anywhere on the page — no extra "enable sound" step for a 10-year-old.
+heroVideo.muted = false;
+heroVideo.play().catch(() => {
+  heroVideo.muted = true;
+  heroVideo.play().catch(() => {});
+  syncSoundToggle();
+  const unlock = () => {
+    heroVideo.muted = false;
+    heroVideo.play().catch(() => {});
+    syncSoundToggle();
+  };
+  ["pointerdown", "keydown"].forEach(evt =>
+    document.addEventListener(evt, unlock, { once: true, passive: true })
+  );
+});
+syncSoundToggle();
+
 soundToggle.addEventListener("click", () => {
   heroVideo.muted = !heroVideo.muted;
-  soundToggle.textContent = heroVideo.muted ? "🔇 Sound" : "🔊 Sound";
   if (!heroVideo.muted) heroVideo.play().catch(() => {});
+  syncSoundToggle();
 });
 
 // ---------- Fighter jet icon (matches in-game jet art style) ----------

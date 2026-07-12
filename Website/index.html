@@ -38,16 +38,24 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
-    padding: 20px;
+    padding: max(64px, calc(env(safe-area-inset-top) + 56px)) 20px 20px;
   }
   #heroOverlay h1 {
     color: #ffffff;
-    font-size: clamp(32px, 9vw, 64px);
+    font-size: clamp(24px, 7vw, 48px);
     margin: 0 0 8px;
     text-shadow: 0 0 18px #00e5ff, 0 2px 6px rgba(0,0,0,0.6);
     letter-spacing: 1px;
+    text-wrap: balance;
+  }
+  #heroOverlay h1 .chinese {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.6em;
+    color: #ffd54f;
+    letter-spacing: 0.5px;
   }
   #heroOverlay p {
     color: #ffd54f;
@@ -163,7 +171,7 @@
 <section id="hero">
   <video id="heroVideo" autoplay loop playsinline></video>
   <div id="heroOverlay">
-    <h1>Kayden's Fun Zone 🌟</h1>
+    <h1>Kayden's Fun Zone 🌟<span class="chinese">黄奕海的娱乐区域</span></h1>
     <p>Watch, laugh, and take off on an adventure!</p>
   </div>
   <button id="soundToggle" title="Toggle sound">🔊 Sound</button>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Kayden's Fun Zone</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: #0a1030;
+    font-family: -apple-system, "Segoe UI", Arial, Helvetica, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Hero ---------- */
+  #hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: #05070f;
+  }
+  #heroVideo {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+  }
+  #heroOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(5,7,20,0.55) 0%, rgba(5,7,20,0.15) 40%, rgba(5,7,20,0.75) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+  }
+  #heroOverlay h1 {
+    color: #ffffff;
+    font-size: clamp(32px, 9vw, 64px);
+    margin: 0 0 8px;
+    text-shadow: 0 0 18px #00e5ff, 0 2px 6px rgba(0,0,0,0.6);
+    letter-spacing: 1px;
+  }
+  #heroOverlay p {
+    color: #ffd54f;
+    font-size: clamp(16px, 4vw, 22px);
+    margin: 0;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    font-weight: bold;
+  }
+  #bounceHint {
+    position: absolute;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-size: 28px;
+    animation: bounce 1.6s infinite;
+    pointer-events: none;
+    text-shadow: 0 0 10px rgba(0,0,0,0.6);
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translate(-50%, 0); }
+    50% { transform: translate(-50%, -12px); }
+  }
+  #soundToggle {
+    position: absolute;
+    top: max(14px, env(safe-area-inset-top));
+    right: max(14px, env(safe-area-inset-right));
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+  }
+  #soundToggle:active { background: rgba(255,255,255,0.32); }
+
+  /* ---------- CTA section ---------- */
+  #cta {
+    position: relative;
+    padding: 56px 20px 72px;
+    background: radial-gradient(circle at 50% 0%, #1a2a55 0%, #0a1030 55%, #05070f 100%);
+    text-align: center;
+    overflow: hidden;
+  }
+  #cta::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 10% 20%, white, transparent),
+      radial-gradient(2px 2px at 80% 30%, white, transparent),
+      radial-gradient(1.5px 1.5px at 40% 70%, white, transparent),
+      radial-gradient(1.5px 1.5px at 65% 85%, white, transparent),
+      radial-gradient(2px 2px at 90% 65%, white, transparent),
+      radial-gradient(1.5px 1.5px at 25% 45%, white, transparent);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  #cta h2 {
+    position: relative;
+    color: white;
+    font-size: clamp(24px, 6vw, 36px);
+    margin: 0 0 28px;
+    text-shadow: 0 0 12px #00e5ff;
+  }
+  #jetButton {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 22px 40px;
+    border: none;
+    border-radius: 28px;
+    background: linear-gradient(180deg, #1e88e5, #0d47a1);
+    box-shadow: 0 10px 0 #082a5e, 0 16px 24px rgba(0,0,0,0.5);
+    cursor: pointer;
+    text-decoration: none;
+    animation: pulse 2.2s infinite;
+    transition: transform 0.1s ease;
+  }
+  #jetButton:active {
+    transform: translateY(6px);
+    box-shadow: 0 4px 0 #082a5e, 0 8px 14px rgba(0,0,0,0.5);
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 10px 0 #082a5e, 0 16px 24px rgba(0,0,0,0.5), 0 0 0 rgba(0,229,255,0.6); }
+    50% { box-shadow: 0 10px 0 #082a5e, 0 16px 24px rgba(0,0,0,0.5), 0 0 28px rgba(0,229,255,0.6); }
+  }
+  #jetIconCanvas {
+    display: block;
+  }
+  #jetButton span {
+    color: white;
+    font-size: clamp(18px, 4.5vw, 24px);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  #cta .sub {
+    position: relative;
+    color: #90caf9;
+    margin-top: 20px;
+    font-size: clamp(13px, 3vw, 16px);
+  }
+</style>
+</head>
+<body>
+
+<section id="hero">
+  <video id="heroVideo" autoplay muted loop playsinline></video>
+  <div id="heroOverlay">
+    <h1>Kayden's Fun Zone 🌟</h1>
+    <p>Watch, laugh, and take off on an adventure!</p>
+  </div>
+  <button id="soundToggle" title="Toggle sound">🔇 Sound</button>
+  <div id="bounceHint">⬇️</div>
+</section>
+
+<section id="cta">
+  <h2>Ready for takeoff? 🚀</h2>
+  <a id="jetButton" href="/game/">
+    <canvas id="jetIconCanvas" width="120" height="140"></canvas>
+    <span>Play Fighter Jet Game!</span>
+  </a>
+  <p class="sub">Blast off and battle enemy jets — tap to start!</p>
+</section>
+
+<script>
+// ---------- Hero video rotation (per-browser, no repeats across refreshes) ----------
+const videos = [
+  "Dragon.mp4",
+  "arm wrestle.mp4",
+  "bamboo jumps.mp4",
+  "dinasaur feeding.mp4",
+  "fighting stage.mp4"
+];
+
+function pickNextVideo() {
+  let last = -1;
+  try {
+    last = parseInt(localStorage.getItem("heroVideoIndex"), 10);
+    if (isNaN(last)) last = -1;
+  } catch (e) {}
+  const next = (last + 1) % videos.length;
+  try { localStorage.setItem("heroVideoIndex", String(next)); } catch (e) {}
+  return next;
+}
+
+const heroVideo = document.getElementById("heroVideo");
+const chosen = videos[pickNextVideo()];
+heroVideo.src = encodeURI("/photo/" + chosen);
+
+const soundToggle = document.getElementById("soundToggle");
+soundToggle.addEventListener("click", () => {
+  heroVideo.muted = !heroVideo.muted;
+  soundToggle.textContent = heroVideo.muted ? "🔇 Sound" : "🔊 Sound";
+  if (!heroVideo.muted) heroVideo.play().catch(() => {});
+});
+
+// ---------- Fighter jet icon (matches in-game jet art style) ----------
+function drawFighterJetIcon(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  const palette = {
+    body: '#5d8aa8', bodyLight: '#8ecae6', bodyDark: '#2c5364',
+    wingLight: '#4a7a9b', wingDark: '#1e3a5f', tail: '#3d6a85',
+    nose: '#a8d4e6', canopy: '#00b4d8', canopyHi: '#90e0ef', canopyEdge: '#0077b6',
+    exhaust: 'rgba(255,200,50,0.9)', exhaustOuter: 'rgba(255,100,0,0.4)'
+  };
+
+  const exhaustGrad = ctx.createRadialGradient(0, h * 0.38, 0, 0, h * 0.38, w * 0.22);
+  exhaustGrad.addColorStop(0, palette.exhaust);
+  exhaustGrad.addColorStop(0.5, palette.exhaustOuter);
+  exhaustGrad.addColorStop(1, 'rgba(255,120,0,0)');
+  ctx.fillStyle = exhaustGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, h * 0.42, w * 0.16, h * 0.12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = palette.wingDark;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.08, h * 0.02);
+  ctx.lineTo(-w * 0.52, h * 0.18);
+  ctx.lineTo(-w * 0.48, h * 0.28);
+  ctx.lineTo(-w * 0.12, h * 0.12);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = palette.wingLight;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.08, h * 0.02);
+  ctx.lineTo(w * 0.52, h * 0.18);
+  ctx.lineTo(w * 0.48, h * 0.28);
+  ctx.lineTo(w * 0.12, h * 0.12);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = palette.tail;
+  ctx.beginPath();
+  ctx.moveTo(-w * 0.1, h * 0.22);
+  ctx.lineTo(-w * 0.22, h * 0.38);
+  ctx.lineTo(-w * 0.06, h * 0.32);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(w * 0.1, h * 0.22);
+  ctx.lineTo(w * 0.22, h * 0.38);
+  ctx.lineTo(w * 0.06, h * 0.32);
+  ctx.closePath();
+  ctx.fill();
+
+  const bodyGrad = ctx.createLinearGradient(-w * 0.2, 0, w * 0.2, 0);
+  bodyGrad.addColorStop(0, palette.bodyDark);
+  bodyGrad.addColorStop(0.35, palette.body);
+  bodyGrad.addColorStop(0.65, palette.bodyLight);
+  bodyGrad.addColorStop(1, palette.bodyDark);
+  ctx.fillStyle = bodyGrad;
+  ctx.beginPath();
+  ctx.moveTo(0, -h * 0.48);
+  ctx.bezierCurveTo(w * 0.12, -h * 0.3, w * 0.1, h * 0.15, w * 0.08, h * 0.34);
+  ctx.lineTo(-w * 0.08, h * 0.34);
+  ctx.bezierCurveTo(-w * 0.1, h * 0.15, -w * 0.12, -h * 0.3, 0, -h * 0.48);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = palette.nose;
+  ctx.beginPath();
+  ctx.moveTo(0, -h * 0.48);
+  ctx.lineTo(w * 0.06, -h * 0.28);
+  ctx.lineTo(-w * 0.06, -h * 0.28);
+  ctx.closePath();
+  ctx.fill();
+
+  const canopyGrad = ctx.createRadialGradient(0, -h * 0.18, 0, 0, -h * 0.18, w * 0.2);
+  canopyGrad.addColorStop(0, palette.canopyHi);
+  canopyGrad.addColorStop(0.6, palette.canopy);
+  canopyGrad.addColorStop(1, palette.canopyEdge);
+  ctx.fillStyle = canopyGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, -h * 0.16, w * 0.14, h * 0.1, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-w * 0.1, h * 0.3, w * 0.08, h * 0.06);
+  ctx.fillRect(w * 0.02, h * 0.3, w * 0.08, h * 0.06);
+
+  ctx.restore();
+}
+
+const iconCanvas = document.getElementById("jetIconCanvas");
+const iconCtx = iconCanvas.getContext("2d");
+drawFighterJetIcon(iconCtx, iconCanvas.width / 2, iconCanvas.height / 2 + 6, 78, 96);
+</script>
+
+</body>
+</html>

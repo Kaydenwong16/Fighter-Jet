@@ -187,6 +187,13 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+let player, bullets, enemies, enemyBullets, particles, stars;
+let score, lives, gameRunning, spawnTimer, shootCooldown;
+let killsSinceBoss, bossActive, bannerText, bannerTimer, playerLevel;
+
+const KILLS_PER_BOSS = 12;
+const MAX_PLAYER_LEVEL = 2;
+
 const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
   || 'ontouchstart' in window;
 
@@ -438,13 +445,6 @@ muteBtn.addEventListener('click', () => {
   Sound.muted = !Sound.muted;
   muteBtn.textContent = Sound.muted ? '🔇 Muted' : '🔊 Sound';
 });
-
-let player, bullets, enemies, enemyBullets, particles, stars;
-let score, lives, gameRunning, spawnTimer, shootCooldown;
-let killsSinceBoss, bossActive, bannerText, bannerTimer, playerLevel;
-
-const KILLS_PER_BOSS = 12;
-const MAX_PLAYER_LEVEL = 2;
 
 function initGame() {
   const bottomPad = isTouchDevice ? 160 : 100;

@@ -61,6 +61,39 @@
     text-shadow: 0 2px 6px rgba(0,0,0,0.7);
     font-weight: bold;
   }
+  #tapToStart {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 18px 30px;
+    border: 2px solid rgba(255,255,255,0.55);
+    border-radius: 22px;
+    background: rgba(5,7,20,0.5);
+    backdrop-filter: blur(3px);
+    color: white;
+    cursor: pointer;
+    animation: tapPulse 1.4s infinite;
+    z-index: 5;
+  }
+  #tapToStart .emoji { font-size: clamp(30px, 8vw, 40px); }
+  #tapToStart span {
+    font-size: clamp(15px, 3.6vw, 19px);
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  }
+  #tapToStart.hidden { display: none; }
+  @keyframes tapPulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.06); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #tapToStart { animation: none; }
+  }
   #bounceHint {
     position: absolute;
     bottom: max(18px, env(safe-area-inset-bottom));
@@ -172,6 +205,10 @@
     <p>Watch, laugh, and take off on an adventure!</p>
   </div>
   <button id="soundToggle" title="Toggle sound">🔊 Sound</button>
+  <button id="tapToStart">
+    <span class="emoji">🔊</span>
+    <span>Tap to start with sound!</span>
+  </button>
   <div id="bounceHint">⬇️</div>
 </section>
 
@@ -210,37 +247,46 @@ const chosen = videos[pickNextVideo()];
 heroVideo.src = encodeURI("/photo/" + chosen);
 
 const soundToggle = document.getElementById("soundToggle");
+const tapToStart = document.getElementById("tapToStart");
 function syncSoundToggle() {
   soundToggle.textContent = heroVideo.muted ? "🔇 Sound" : "🔊 Sound";
 }
 
-// Sound is on by default. Most browsers block audible autoplay without a
-// prior user gesture, so try unmuted first; if that's blocked, fall back to
-// muted autoplay and unmute automatically on the visitor's first tap/click/
-// key anywhere on the page — no extra "enable sound" step for a 10-year-old.
-heroVideo.muted = false;
-heroVideo.play().catch(() => {
-  heroVideo.muted = true;
+// Browsers block audible autoplay before any user gesture on the page —
+// no website can get around that. Muted autoplay is always allowed, so the
+// video starts playing immediately; a big "Tap to start with sound!" prompt
+// makes the required first gesture obvious so sound turns on right away
+// instead of waiting on an incidental click elsewhere.
+heroVideo.muted = true;
+heroVideo.play().catch(() => {});
+syncSoundToggle();
+
+function unmuteHero() {
+  if (!heroVideo.muted) return;
+  heroVideo.muted = false;
   heroVideo.play().catch(() => {});
   syncSoundToggle();
-  // Falls back to the sound button's own click handler when the first
-  // gesture lands there, so the two don't race and re-mute each other.
-  const unlock = (e) => {
+  tapToStart.classList.add("hidden");
+}
+
+tapToStart.addEventListener("click", unmuteHero);
+
+// Also catches a curious kid tapping anywhere else first (e.g. the CTA
+// button) instead of the prompt. Skips the sound button itself, since its
+// own click handler below already manages mute state and would otherwise
+// race with this (pointerdown fires before click).
+["pointerdown", "keydown"].forEach(evt =>
+  document.addEventListener(evt, (e) => {
     if (soundToggle.contains(e.target)) return;
-    heroVideo.muted = false;
-    heroVideo.play().catch(() => {});
-    syncSoundToggle();
-  };
-  ["pointerdown", "keydown"].forEach(evt =>
-    document.addEventListener(evt, unlock, { once: true, passive: true })
-  );
-});
-syncSoundToggle();
+    unmuteHero();
+  }, { once: true, passive: true })
+);
 
 soundToggle.addEventListener("click", () => {
   heroVideo.muted = !heroVideo.muted;
   if (!heroVideo.muted) heroVideo.play().catch(() => {});
   syncSoundToggle();
+  tapToStart.classList.add("hidden");
 });
 
 // ---------- Fighter jet icon (matches in-game jet art style) ----------

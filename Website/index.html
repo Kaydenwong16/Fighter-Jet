@@ -44,7 +44,7 @@
   }
   #heroOverlay h1 {
     color: #ffffff;
-    font-size: clamp(24px, 7vw, 48px);
+    font-size: clamp(18px, 5.5vw, 36px);
     margin: 0 0 8px;
     text-shadow: 0 0 18px #00e5ff, 0 2px 6px rgba(0,0,0,0.6);
     letter-spacing: 1px;
@@ -201,7 +201,7 @@
     <p>Watch, laugh, and take off on an adventure!</p>
     <button id="tapToStart">
       <span class="emoji">🔊</span>
-      <span>Tap to start with sound!</span>
+      <span>Sound On 打开音频</span>
     </button>
   </div>
   <button id="soundToggle" title="Toggle sound">🔊 Sound</button>
@@ -250,7 +250,7 @@ function syncSoundToggle() {
 
 // Browsers block audible autoplay before any user gesture on the page —
 // no website can get around that. Muted autoplay is always allowed, so the
-// video starts playing immediately; a big "Tap to start with sound!" prompt
+// video starts playing immediately; a big "Sound On" prompt
 // makes the required first gesture obvious so sound turns on right away
 // instead of waiting on an incidental click elsewhere.
 heroVideo.muted = true;

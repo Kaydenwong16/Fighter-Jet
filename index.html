@@ -96,37 +96,9 @@
     z-index: 10;
   }
   #touchControls.active { display: block; }
-  #joystickZone {
-    position: absolute;
-    left: max(20px, env(safe-area-inset-left));
-    bottom: max(24px, env(safe-area-inset-bottom));
-    width: 140px;
-    height: 140px;
-    pointer-events: auto;
-    touch-action: none;
-  }
-  #joystickBase {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-    border: 2px solid rgba(255,255,255,0.25);
-  }
-  #joystickKnob {
-    position: absolute;
-    width: 56px;
-    height: 56px;
-    left: 42px;
-    top: 42px;
-    border-radius: 50%;
-    background: rgba(0,229,255,0.45);
-    border: 2px solid rgba(0,229,255,0.8);
-    box-shadow: 0 0 12px rgba(0,229,255,0.5);
-    transform: translate(0, 0);
-  }
   #fireBtn {
     position: absolute;
-    right: max(24px, env(safe-area-inset-right));
+    left: max(24px, env(safe-area-inset-left));
     bottom: max(36px, env(safe-area-inset-bottom));
     width: 96px;
     height: 96px;
@@ -168,17 +140,13 @@
 <button id="muteBtn" title="Toggle sound">🔊 Sound</button>
 
 <div id="touchControls">
-  <div id="joystickZone">
-    <div id="joystickBase"></div>
-    <div id="joystickKnob"></div>
-  </div>
   <button id="fireBtn">FIRE</button>
 </div>
 
 <div id="overlay">
   <h1>Jet Battle</h1>
   <p class="desktop-hint">Arrow Keys / WASD to move &nbsp;&bull;&nbsp; Space to shoot</p>
-  <p class="mobile-hint">Use the joystick to move &nbsp;&bull;&nbsp; Tap FIRE to shoot</p>
+  <p class="mobile-hint">Drag anywhere to move &nbsp;&bull;&nbsp; Tap FIRE to shoot</p>
   <p id="finalMsg"></p>
   <button id="startBtn">Start Game</button>
 </div>
@@ -225,8 +193,6 @@ const finalMsg = document.getElementById('finalMsg');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const touchControls = document.getElementById('touchControls');
-const joystickZone = document.getElementById('joystickZone');
-const joystickKnob = document.getElementById('joystickKnob');
 const fireBtn = document.getElementById('fireBtn');
 
 function updateTouchControlsVisibility() {
@@ -241,60 +207,38 @@ window.addEventListener('keydown', e => {
 window.addEventListener('keyup', e => keys[e.code] = false);
 
 const touch = {
-  x: 0,
-  y: 0,
+  dx: 0,
+  dy: 0,
   shoot: false,
-  joystickId: null,
-  centerX: 0,
-  centerY: 0,
-  maxRadius: 42,
-  knobRest: 42
+  dragId: null,
+  lastX: 0,
+  lastY: 0
 };
 
-function resetJoystick() {
-  touch.x = 0;
-  touch.y = 0;
-  touch.joystickId = null;
-  joystickKnob.style.transform = 'translate(0px, 0px)';
-}
-
-function handleJoystickMove(clientX, clientY) {
-  const dx = clientX - touch.centerX;
-  const dy = clientY - touch.centerY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  const clamped = Math.min(dist, touch.maxRadius);
-  const angle = Math.atan2(dy, dx);
-  const nx = Math.cos(angle) * clamped;
-  const ny = Math.sin(angle) * clamped;
-  joystickKnob.style.transform = `translate(${nx}px, ${ny}px)`;
-  touch.x = nx / touch.maxRadius;
-  touch.y = ny / touch.maxRadius;
-}
-
-joystickZone.addEventListener('pointerdown', e => {
-  if (!gameRunning) return;
-  e.preventDefault();
-  touch.joystickId = e.pointerId;
-  joystickZone.setPointerCapture(e.pointerId);
-  const rect = joystickZone.getBoundingClientRect();
-  touch.centerX = rect.left + rect.width / 2;
-  touch.centerY = rect.top + rect.height / 2;
-  handleJoystickMove(e.clientX, e.clientY);
+canvas.addEventListener('pointerdown', e => {
+  if (!gameRunning || !isTouchDevice) return;
+  touch.dragId = e.pointerId;
+  canvas.setPointerCapture(e.pointerId);
+  touch.lastX = e.clientX;
+  touch.lastY = e.clientY;
 });
 
-joystickZone.addEventListener('pointermove', e => {
-  if (touch.joystickId !== e.pointerId) return;
+canvas.addEventListener('pointermove', e => {
+  if (touch.dragId !== e.pointerId) return;
   e.preventDefault();
-  handleJoystickMove(e.clientX, e.clientY);
+  touch.dx += e.clientX - touch.lastX;
+  touch.dy += e.clientY - touch.lastY;
+  touch.lastX = e.clientX;
+  touch.lastY = e.clientY;
 });
 
-function endJoystick(e) {
-  if (touch.joystickId !== e.pointerId) return;
-  resetJoystick();
+function endDrag(e) {
+  if (touch.dragId !== e.pointerId) return;
+  touch.dragId = null;
 }
 
-joystickZone.addEventListener('pointerup', endJoystick);
-joystickZone.addEventListener('pointercancel', endJoystick);
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
 
 fireBtn.addEventListener('pointerdown', e => {
   if (!gameRunning) return;
@@ -750,23 +694,28 @@ function spawnParticles(x, y, color) {
 function update() {
   if (!gameRunning) return;
 
-  // player movement (keyboard + touch joystick)
+  // player movement (keyboard + finger drag)
   let moveX = 0, moveY = 0;
   if (keys['ArrowLeft'] || keys['KeyA']) moveX -= 1;
   if (keys['ArrowRight'] || keys['KeyD']) moveX += 1;
   if (keys['ArrowUp'] || keys['KeyW']) moveY -= 1;
   if (keys['ArrowDown'] || keys['KeyS']) moveY += 1;
-  if (isTouchDevice) {
-    moveX += touch.x;
-    moveY += touch.y;
-  }
-  moveX = Math.max(-1, Math.min(1, moveX));
-  moveY = Math.max(-1, Math.min(1, moveY));
   player.x += moveX * player.speed;
   player.y += moveY * player.speed;
+
+  let dragDX = 0;
+  if (isTouchDevice) {
+    dragDX = touch.dx;
+    player.x += touch.dx;
+    player.y += touch.dy;
+    touch.dx = 0;
+    touch.dy = 0;
+  }
+
   player.x = Math.min(Math.max(player.x, player.w / 2), canvas.width - player.w / 2);
   player.y = Math.min(Math.max(player.y, player.h / 2), canvas.height - player.h / 2);
-  const targetTilt = moveX * 0.22;
+  const tiltInput = Math.max(-1, Math.min(1, moveX + dragDX / 6));
+  const targetTilt = tiltInput * 0.22;
   player.tilt += (targetTilt - player.tilt) * 0.15;
 
   if (player.invincible > 0) player.invincible--;

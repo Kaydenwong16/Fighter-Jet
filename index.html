@@ -48,6 +48,7 @@
     color: white;
     text-align: center;
     background: rgba(0,0,0,0.55);
+    z-index: 20;
   }
   #overlay h1 { font-size: clamp(28px, 8vw, 42px); margin-bottom: 10px; text-shadow: 0 0 10px #00e5ff; }
   #overlay p { font-size: clamp(14px, 3.5vw, 18px); margin: 6px; max-width: 90vw; line-height: 1.4; }
@@ -221,7 +222,9 @@ const joystickZone = document.getElementById('joystickZone');
 const joystickKnob = document.getElementById('joystickKnob');
 const fireBtn = document.getElementById('fireBtn');
 
-if (isTouchDevice) touchControls.classList.add('active');
+function updateTouchControlsVisibility() {
+  touchControls.classList.toggle('active', isTouchDevice && gameRunning);
+}
 
 let keys = {};
 window.addEventListener('keydown', e => {
@@ -304,6 +307,7 @@ fireBtn.addEventListener('pointerleave', endFire);
 const Sound = {
   ctx: null,
   master: null,
+  musicBus: null,
   noiseBuf: null,
   muted: false,
 
@@ -313,6 +317,9 @@ const Sound = {
     this.master = this.ctx.createGain();
     this.master.gain.value = 0.45;
     this.master.connect(this.ctx.destination);
+    this.musicBus = this.ctx.createGain();
+    this.musicBus.gain.value = 1;
+    this.musicBus.connect(this.master);
     const len = this.ctx.sampleRate * 0.5;
     this.noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
     const data = this.noiseBuf.getChannelData(0);
@@ -324,7 +331,7 @@ const Sound = {
     if (this.ctx.state === 'suspended') this.ctx.resume();
   },
 
-  tone(freq, type, duration, vol, slideTo) {
+  tone(freq, type, duration, vol, slideTo, destination) {
     if (this.muted) return;
     this.resume();
     const t = this.ctx.currentTime;
@@ -336,7 +343,7 @@ const Sound = {
     gain.gain.setValueAtTime(vol, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
     osc.connect(gain);
-    gain.connect(this.master);
+    gain.connect(destination || this.master);
     osc.start(t);
     osc.stop(t + duration);
   },
@@ -393,17 +400,25 @@ const Sound = {
   musicLead: [440, 0, 523.25, 0, 587.33, 0, 523.25, 466.16, 440, 0, 587.33, 0, 659.25, 0, 523.25, 0],
   startMusic() {
     if (this.musicInterval) return;
-    this.resume();
-    this.musicStep = 0;
-    this.musicInterval = setInterval(() => {
-      if (!this.muted) {
-        const bass = this.musicBass[this.musicStep % this.musicBass.length];
-        const lead = this.musicLead[this.musicStep % this.musicLead.length];
-        this.tone(bass, 'triangle', 0.24, 0.07);
-        if (lead) this.tone(lead, 'sine', 0.18, 0.045);
-      }
-      this.musicStep++;
-    }, 220);
+    this.init();
+    const begin = () => {
+      if (this.musicInterval) return;
+      this.musicStep = 0;
+      this.musicInterval = setInterval(() => {
+        if (!this.muted) {
+          const bass = this.musicBass[this.musicStep % this.musicBass.length];
+          const lead = this.musicLead[this.musicStep % this.musicLead.length];
+          this.tone(bass, 'triangle', 0.24, 0.22, null, this.musicBus);
+          if (lead) this.tone(lead, 'sine', 0.18, 0.16, null, this.musicBus);
+        }
+        this.musicStep++;
+      }, 220);
+    };
+    if (this.ctx.state === 'suspended') {
+      this.ctx.resume().then(begin);
+    } else {
+      begin();
+    }
   },
   stopMusic() {
     clearInterval(this.musicInterval);
@@ -411,6 +426,12 @@ const Sound = {
     this.musicStep = 0;
   }
 };
+
+// Extra unlock safety net for mobile browsers (iOS Safari in particular can
+// need an additional gesture beyond the Start button before audio flows).
+['pointerdown', 'touchend', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, () => Sound.resume(), { once: true, passive: true });
+});
 
 const muteBtn = document.getElementById('muteBtn');
 muteBtn.addEventListener('click', () => {
@@ -979,6 +1000,7 @@ function endGame() {
   finalMsg.textContent = `Game Over — Final Score: ${score}`;
   startBtn.textContent = 'Play Again';
   overlay.style.display = 'flex';
+  updateTouchControlsVisibility();
   Sound.stopMusic();
   Sound.gameOver();
 }
@@ -987,6 +1009,7 @@ startBtn.addEventListener('click', () => {
   Sound.resume();
   overlay.style.display = 'none';
   initGame();
+  updateTouchControlsVisibility();
   Sound.start();
   Sound.startMusic();
 });
@@ -994,6 +1017,7 @@ startBtn.addEventListener('click', () => {
 initGame();
 gameRunning = false;
 overlay.style.display = 'flex';
+updateTouchControlsVisibility();
 loop();
 </script>
 

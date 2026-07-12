@@ -62,15 +62,12 @@
     font-weight: bold;
   }
   #tapToStart {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    padding: 18px 30px;
+    margin-top: 18px;
+    padding: 14px 28px;
     border: 2px solid rgba(255,255,255,0.55);
     border-radius: 22px;
     background: rgba(5,7,20,0.5);
@@ -78,18 +75,17 @@
     color: white;
     cursor: pointer;
     animation: tapPulse 1.4s infinite;
-    z-index: 5;
   }
-  #tapToStart .emoji { font-size: clamp(30px, 8vw, 40px); }
+  #tapToStart .emoji { font-size: clamp(26px, 7vw, 34px); }
   #tapToStart span {
-    font-size: clamp(15px, 3.6vw, 19px);
+    font-size: clamp(14px, 3.4vw, 18px);
     font-weight: bold;
     text-shadow: 0 2px 4px rgba(0,0,0,0.6);
   }
   #tapToStart.hidden { display: none; }
   @keyframes tapPulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); }
-    50% { transform: translate(-50%, -50%) scale(1.06); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.06); }
   }
   @media (prefers-reduced-motion: reduce) {
     #tapToStart { animation: none; }
@@ -203,12 +199,12 @@
   <div id="heroOverlay">
     <h1>Kayden's Fun Zone 🌟<span class="chinese">黄奕海 Fun 空间</span></h1>
     <p>Watch, laugh, and take off on an adventure!</p>
+    <button id="tapToStart">
+      <span class="emoji">🔊</span>
+      <span>Tap to start with sound!</span>
+    </button>
   </div>
   <button id="soundToggle" title="Toggle sound">🔊 Sound</button>
-  <button id="tapToStart">
-    <span class="emoji">🔊</span>
-    <span>Tap to start with sound!</span>
-  </button>
   <div id="bounceHint">⬇️</div>
 </section>
 
@@ -270,6 +266,22 @@ function unmuteHero() {
 }
 
 tapToStart.addEventListener("click", unmuteHero);
+
+// Best-effort: 0.5s after load, try unmuted playback once on our own.
+// This can only succeed if the browser already trusts this site for audio
+// (e.g. a returning visitor with prior engagement) — a script can't
+// manufacture the user gesture browsers require, so this is a bonus path,
+// not a replacement for the tap prompt above.
+setTimeout(() => {
+  if (!heroVideo.muted) return;
+  heroVideo.muted = false;
+  heroVideo.play().then(() => {
+    syncSoundToggle();
+    tapToStart.classList.add("hidden");
+  }).catch(() => {
+    heroVideo.muted = true;
+  });
+}, 500);
 
 // Also catches a curious kid tapping anywhere else first (e.g. the CTA
 // button) instead of the prompt. Skips the sound button itself, since its

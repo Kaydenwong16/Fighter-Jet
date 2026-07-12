@@ -166,7 +166,7 @@
 <body>
 
 <section id="hero">
-  <video id="heroVideo" autoplay loop playsinline></video>
+  <video id="heroVideo" loop playsinline></video>
   <div id="heroOverlay">
     <h1>Kayden's Fun Zone 🌟<span class="chinese">黄奕海 Fun 空间</span></h1>
     <p>Watch, laugh, and take off on an adventure!</p>
@@ -223,7 +223,10 @@ heroVideo.play().catch(() => {
   heroVideo.muted = true;
   heroVideo.play().catch(() => {});
   syncSoundToggle();
-  const unlock = () => {
+  // Falls back to the sound button's own click handler when the first
+  // gesture lands there, so the two don't race and re-mute each other.
+  const unlock = (e) => {
+    if (soundToggle.contains(e.target)) return;
     heroVideo.muted = false;
     heroVideo.play().catch(() => {});
     syncSoundToggle();

@@ -43,7 +43,7 @@
     padding: max(64px, calc(env(safe-area-inset-top) + 56px)) 20px 20px;
   }
   #heroOverlay h1 {
-    position: absolute;
+    position: fixed;
     top: max(14px, env(safe-area-inset-top));
     left: max(14px, env(safe-area-inset-left));
     margin: 0;
@@ -53,6 +53,8 @@
     letter-spacing: 1px;
     text-align: left;
     text-wrap: balance;
+    z-index: 50;
+    pointer-events: none;
   }
   #heroOverlay h1 .chinese {
     display: block;

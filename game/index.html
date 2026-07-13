@@ -27,9 +27,32 @@
     background: linear-gradient(#0a1030, #1a2a55);
     touch-action: none;
   }
-  #playerTag {
+  #homeBtn {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
+    right: max(24px, env(safe-area-inset-right));
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: rgba(0,229,255,0.18);
+    border: 1px solid rgba(0,229,255,0.7);
+    color: #ffffff;
+    font-size: clamp(13px, 3vw, 16px);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    text-decoration: none;
+    text-shadow: 0 0 6px #00e5ff, 0 0 2px #000;
+    box-shadow: 0 0 14px rgba(0,229,255,0.5);
+    cursor: pointer;
+    touch-action: manipulation;
+    z-index: 25;
+  }
+  #homeBtn:hover, #homeBtn:active { background: rgba(0,229,255,0.32); }
+  #playerTag {
+    position: absolute;
+    top: max(56px, calc(env(safe-area-inset-top) + 46px));
     right: max(24px, env(safe-area-inset-right));
     color: #ffffff;
     text-align: right;
@@ -125,6 +148,22 @@
     touch-action: manipulation;
   }
   #muteBtn:hover { background: rgba(255,255,255,0.25); }
+  #pauseBtn {
+    position: absolute;
+    top: calc(max(12px, env(safe-area-inset-top)) + 42px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px 16px;
+    font-size: clamp(14px, 3vw, 16px);
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.15);
+    color: white;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  #pauseBtn:hover { background: rgba(255,255,255,0.25); }
+  #pauseBtn:disabled { opacity: 0.4; cursor: default; }
   #touchControls {
     display: none;
     position: fixed;
@@ -166,6 +205,8 @@
 
 <canvas id="gameCanvas"></canvas>
 
+<a id="homeBtn" href="/" title="Back to home">🏠 Home</a>
+
 <div id="playerTag">
   <div class="name" id="playerNameTag">Player</div>
 </div>
@@ -178,6 +219,7 @@
   <ol id="lbList"></ol>
 </div>
 <button id="muteBtn" title="Toggle sound">🔊 Sound</button>
+<button id="pauseBtn" title="Pause game" disabled>⏸️ Pause</button>
 
 <div id="touchControls">
   <button id="fireBtn">FIRE</button>
@@ -200,6 +242,7 @@ let player, bullets, enemies, enemyBullets, particles, stars;
 let score, lives, gameRunning, spawnTimer, shootCooldown;
 let killsSinceBoss, bossActive, bannerText, bannerTimer, playerLevel;
 let gameEndTime, currentPlayerName = 'Player';
+let isPaused = false, pauseStart = 0;
 
 const KILLS_PER_BOSS = 12;
 const MAX_PLAYER_LEVEL = 2;
@@ -480,6 +523,22 @@ muteBtn.addEventListener('click', () => {
   muteBtn.textContent = Sound.muted ? '🔇 Muted' : '🔊 Sound';
 });
 
+const pauseBtn = document.getElementById('pauseBtn');
+pauseBtn.addEventListener('click', () => {
+  if (!gameRunning) return;
+  if (!isPaused) {
+    isPaused = true;
+    pauseStart = Date.now();
+    pauseBtn.textContent = '▶️ Resume';
+    Sound.stopMusic();
+  } else {
+    isPaused = false;
+    gameEndTime += Date.now() - pauseStart;
+    pauseBtn.textContent = '⏸️ Pause';
+    Sound.startMusic();
+  }
+});
+
 function initGame() {
   const bottomPad = isTouchDevice ? 160 : 100;
   const baseW = isTouchDevice ? 48 : 56;
@@ -519,6 +578,9 @@ function initGame() {
   bannerTimer = 0;
   playerLevel = 0;
   gameEndTime = Date.now() + GAME_DURATION * 1000;
+  isPaused = false;
+  pauseBtn.textContent = '⏸️ Pause';
+  pauseBtn.disabled = false;
   applyPlayerLevel();
   scoreEl.textContent = score;
   livesEl.textContent = lives;
@@ -785,7 +847,7 @@ function spawnParticles(x, y, color) {
 }
 
 function update() {
-  if (!gameRunning) return;
+  if (!gameRunning || isPaused) return;
 
   // countdown timer
   const remainingSec = Math.max(0, Math.ceil((gameEndTime - Date.now()) / 1000));
@@ -1040,6 +1102,19 @@ function draw() {
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
   }
+
+  // paused overlay
+  if (gameRunning && isPaused) {
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.min(48, canvas.width * 0.08)}px Arial`;
+    ctx.fillStyle = '#00e5ff';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 10;
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+    ctx.shadowBlur = 0;
+  }
 }
 
 function loop() {
@@ -1050,6 +1125,8 @@ function loop() {
 
 function endGame(reason) {
   gameRunning = false;
+  isPaused = false;
+  pauseBtn.disabled = true;
   finalMsg.textContent = reason === 'time'
     ? `Time's Up! Final Score: ${score}`
     : `Game Over — Final Score: ${score}`;

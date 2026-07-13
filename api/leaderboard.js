@@ -1,11 +1,25 @@
-// Global Fighter Jet leaderboard, backed by Upstash Redis (REST API, no SDK
-// dependency needed). Requires UPSTASH_REDIS_REST_URL and
-// UPSTASH_REDIS_REST_TOKEN to be set as environment variables in the Vercel
-// project — see README for the one-time setup step.
+// Global Fighter Jet leaderboard, backed by a Redis REST API (no SDK
+// dependency needed). Vercel's Storage integrations inject credentials
+// under different variable names depending on how the database was
+// created, so both known conventions are checked — see README for setup.
 
 const LIST_KEY = 'jetBattleLeaderboard';
 const MAX_STORED = 200;
 const TOP_N = 3;
+
+const CREDENTIAL_CANDIDATES = [
+  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN'],
+  ['KV_REST_API_URL', 'KV_REST_API_TOKEN']
+];
+
+function resolveCredentials() {
+  for (const [urlKey, tokenKey] of CREDENTIAL_CANDIDATES) {
+    const url = process.env[urlKey];
+    const token = process.env[tokenKey];
+    if (url && token) return { url, token };
+  }
+  return null;
+}
 
 async function upstash(url, token, command) {
   const r = await fetch(url, {
@@ -22,13 +36,20 @@ async function upstash(url, token, command) {
 }
 
 module.exports = async (req, res) => {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const creds = resolveCredentials();
 
-  if (!url || !token) {
-    res.status(500).json({ error: 'Leaderboard storage is not configured yet.' });
+  if (!creds) {
+    // Names only, never values — safe to expose, and saves a round trip
+    // when diagnosing which environment variables Vercel actually set.
+    const checkedNames = CREDENTIAL_CANDIDATES.flat();
+    res.status(500).json({
+      error: 'Leaderboard storage is not configured yet.',
+      checkedEnvVars: checkedNames,
+      foundEnvVars: checkedNames.filter(k => process.env[k] !== undefined)
+    });
     return;
   }
+  const { url, token } = creds;
 
   try {
     if (req.method === 'POST') {
@@ -57,6 +78,6 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ top });
   } catch (e) {
-    res.status(500).json({ error: 'Leaderboard request failed.' });
+    res.status(500).json({ error: 'Leaderboard request failed.', detail: e.message });
   }
 };

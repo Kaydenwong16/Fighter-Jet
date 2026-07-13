@@ -62,6 +62,12 @@ module.exports = async (req, res) => {
       }
       await upstash(url, token, ['LPUSH', LIST_KEY, JSON.stringify({ name, score })]);
       await upstash(url, token, ['LTRIM', LIST_KEY, 0, MAX_STORED - 1]);
+    } else if (req.method === 'DELETE') {
+      // TEMPORARY: one-time cleanup of verification test entries. Remove
+      // this branch after use — no standing wipe endpoint should ship.
+      await upstash(url, token, ['DEL', LIST_KEY]);
+      res.status(200).json({ ok: true });
+      return;
     } else if (req.method !== 'GET') {
       res.status(405).json({ error: 'Method not allowed.' });
       return;

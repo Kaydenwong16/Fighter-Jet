@@ -37,7 +37,28 @@
     pointer-events: none;
   }
   #playerTag .name { font-size: clamp(18px, 4vw, 26px); font-weight: bold; letter-spacing: 1px; }
-  #playerTag .chinese { font-size: clamp(14px, 3vw, 20px); color: #ffd54f; }
+  #leaderboard {
+    position: absolute;
+    top: max(64px, calc(env(safe-area-inset-top) + 54px));
+    left: max(20px, env(safe-area-inset-left));
+    min-width: 130px;
+    color: white;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: clamp(12px, 2.6vw, 15px);
+    text-shadow: 0 0 4px #000;
+    pointer-events: none;
+  }
+  #leaderboard .lbTitle { font-weight: bold; color: #ffd54f; margin-bottom: 4px; }
+  #leaderboard ol { margin: 0; padding-left: 18px; }
+  #leaderboard li { margin: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+  #timer.low { color: #ff5252; animation: timerPulse 0.5s infinite; }
+  @keyframes timerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
   #overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -64,6 +85,22 @@
     touch-action: manipulation;
   }
   #overlay button:hover { background: #00e676; }
+  #overlay input {
+    margin-top: 16px;
+    padding: 10px 16px;
+    width: min(260px, 80vw);
+    font-size: clamp(16px, 4vw, 18px);
+    border: none;
+    border-radius: 8px;
+    text-align: center;
+    outline: none;
+  }
+  #overlay input.shake { animation: shake 0.3s; box-shadow: 0 0 0 3px #ff5252; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
   #hud {
     position: absolute;
     top: max(12px, env(safe-area-inset-top));
@@ -130,12 +167,15 @@
 <canvas id="gameCanvas"></canvas>
 
 <div id="playerTag">
-  <div class="name">Kayden</div>
-  <div class="chinese">黄奕海</div>
+  <div class="name" id="playerNameTag">Player</div>
 </div>
 
 <div id="hud">
-  Score: <span id="score">0</span> &nbsp; Lives: <span id="lives">3</span> &nbsp; Jet: <span id="jetLevel">Falcon</span>
+  Score: <span id="score">0</span> &nbsp; Lives: <span id="lives">3</span> &nbsp; Jet: <span id="jetLevel">Falcon</span> &nbsp; Time: <span id="timer">3:00</span>
+</div>
+<div id="leaderboard">
+  <div class="lbTitle">🏆 Top Pilots</div>
+  <ol id="lbList"></ol>
 </div>
 <button id="muteBtn" title="Toggle sound">🔊 Sound</button>
 
@@ -148,6 +188,7 @@
   <p class="desktop-hint">Arrow Keys / WASD to move &nbsp;&bull;&nbsp; Space to shoot</p>
   <p class="mobile-hint">Drag anywhere to move &nbsp;&bull;&nbsp; Tap FIRE to shoot</p>
   <p id="finalMsg"></p>
+  <input id="nameInput" type="text" placeholder="Enter your name" maxlength="14" autocomplete="off">
   <button id="startBtn">Start Game</button>
 </div>
 
@@ -158,9 +199,11 @@ const ctx = canvas.getContext('2d');
 let player, bullets, enemies, enemyBullets, particles, stars;
 let score, lives, gameRunning, spawnTimer, shootCooldown;
 let killsSinceBoss, bossActive, bannerText, bannerTimer, playerLevel;
+let gameEndTime, currentPlayerName = 'Player';
 
 const KILLS_PER_BOSS = 12;
 const MAX_PLAYER_LEVEL = 2;
+const GAME_DURATION = 180; // 3 minutes, in seconds
 
 const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches
   || 'ontouchstart' in window;
@@ -192,12 +235,53 @@ const startBtn = document.getElementById('startBtn');
 const finalMsg = document.getElementById('finalMsg');
 const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
+const timerEl = document.getElementById('timer');
 const touchControls = document.getElementById('touchControls');
 const fireBtn = document.getElementById('fireBtn');
+const nameInput = document.getElementById('nameInput');
+const playerNameTag = document.getElementById('playerNameTag');
+const lbList = document.getElementById('lbList');
 
 function updateTouchControlsVisibility() {
   touchControls.classList.toggle('active', isTouchDevice && gameRunning);
 }
+
+// ---------- Leaderboard (top 3 pilots, stored per-browser) ----------
+const LEADERBOARD_KEY = 'jetBattleLeaderboard';
+const LAST_NAME_KEY = 'jetBattlePlayerName';
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function loadLeaderboard() {
+  try {
+    return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveScore(name, finalScore) {
+  const list = loadLeaderboard();
+  list.push({ name, score: finalScore });
+  list.sort((a, b) => b.score - a.score);
+  try {
+    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list.slice(0, 10)));
+  } catch (e) {}
+}
+
+function renderLeaderboard() {
+  const top3 = loadLeaderboard().slice(0, 3);
+  lbList.innerHTML = top3.length
+    ? top3.map(e => `<li>${escapeHtml(e.name)} — ${e.score}</li>`).join('')
+    : '<li>No scores yet</li>';
+}
+
+try {
+  nameInput.value = localStorage.getItem(LAST_NAME_KEY) || '';
+} catch (e) {}
+renderLeaderboard();
 
 let keys = {};
 window.addEventListener('keydown', e => {
@@ -428,9 +512,12 @@ function initGame() {
   bannerText = '';
   bannerTimer = 0;
   playerLevel = 0;
+  gameEndTime = Date.now() + GAME_DURATION * 1000;
   applyPlayerLevel();
   scoreEl.textContent = score;
   livesEl.textContent = lives;
+  timerEl.textContent = '3:00';
+  timerEl.classList.remove('low');
   updateLevelHud();
 }
 
@@ -694,6 +781,17 @@ function spawnParticles(x, y, color) {
 function update() {
   if (!gameRunning) return;
 
+  // countdown timer
+  const remainingSec = Math.max(0, Math.ceil((gameEndTime - Date.now()) / 1000));
+  const mm = Math.floor(remainingSec / 60);
+  const ss = remainingSec % 60;
+  timerEl.textContent = `${mm}:${String(ss).padStart(2, '0')}`;
+  timerEl.classList.toggle('low', remainingSec <= 10);
+  if (remainingSec <= 0) {
+    endGame('time');
+    return;
+  }
+
   // player movement (keyboard + finger drag)
   let moveX = 0, moveY = 0;
   if (keys['ArrowLeft'] || keys['KeyA']) moveX -= 1;
@@ -944,17 +1042,33 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-function endGame() {
+function endGame(reason) {
   gameRunning = false;
-  finalMsg.textContent = `Game Over — Final Score: ${score}`;
+  finalMsg.textContent = reason === 'time'
+    ? `Time's Up! Final Score: ${score}`
+    : `Game Over — Final Score: ${score}`;
   startBtn.textContent = 'Play Again';
   overlay.style.display = 'flex';
   updateTouchControlsVisibility();
   Sound.stopMusic();
   Sound.gameOver();
+  saveScore(currentPlayerName, score);
+  renderLeaderboard();
 }
 
 startBtn.addEventListener('click', () => {
+  const name = nameInput.value.trim();
+  if (!name) {
+    nameInput.classList.remove('shake');
+    void nameInput.offsetWidth;
+    nameInput.classList.add('shake');
+    nameInput.focus();
+    return;
+  }
+  currentPlayerName = name.slice(0, 14);
+  try { localStorage.setItem(LAST_NAME_KEY, currentPlayerName); } catch (e) {}
+  playerNameTag.textContent = currentPlayerName;
+
   Sound.resume();
   overlay.style.display = 'none';
   initGame();

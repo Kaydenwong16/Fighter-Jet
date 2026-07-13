@@ -246,42 +246,48 @@ function updateTouchControlsVisibility() {
   touchControls.classList.toggle('active', isTouchDevice && gameRunning);
 }
 
-// ---------- Leaderboard (top 3 pilots, stored per-browser) ----------
-const LEADERBOARD_KEY = 'jetBattleLeaderboard';
+// ---------- Leaderboard (top 3 pilots, shared globally via /api/leaderboard) ----------
 const LAST_NAME_KEY = 'jetBattlePlayerName';
 
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function loadLeaderboard() {
+function renderLeaderboardEntries(top) {
+  lbList.innerHTML = top && top.length
+    ? top.map(e => `<li>${escapeHtml(e.name)} — ${e.score}</li>`).join('')
+    : '<li>No scores yet</li>';
+}
+
+async function fetchLeaderboard() {
   try {
-    return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+    const r = await fetch('/api/leaderboard');
+    const data = await r.json();
+    renderLeaderboardEntries(data.top);
   } catch (e) {
-    return [];
+    // Offline or storage not configured yet — leave whatever was last shown.
   }
 }
 
-function saveScore(name, finalScore) {
-  const list = loadLeaderboard();
-  list.push({ name, score: finalScore });
-  list.sort((a, b) => b.score - a.score);
+async function submitScore(name, finalScore) {
   try {
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(list.slice(0, 10)));
-  } catch (e) {}
-}
-
-function renderLeaderboard() {
-  const top3 = loadLeaderboard().slice(0, 3);
-  lbList.innerHTML = top3.length
-    ? top3.map(e => `<li>${escapeHtml(e.name)} — ${e.score}</li>`).join('')
-    : '<li>No scores yet</li>';
+    const r = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: finalScore })
+    });
+    const data = await r.json();
+    renderLeaderboardEntries(data.top);
+  } catch (e) {
+    // If the submit fails, at least try to refresh with whatever's live.
+    fetchLeaderboard();
+  }
 }
 
 try {
   nameInput.value = localStorage.getItem(LAST_NAME_KEY) || '';
 } catch (e) {}
-renderLeaderboard();
+fetchLeaderboard();
 
 let keys = {};
 window.addEventListener('keydown', e => {
@@ -1052,8 +1058,7 @@ function endGame(reason) {
   updateTouchControlsVisibility();
   Sound.stopMusic();
   Sound.gameOver();
-  saveScore(currentPlayerName, score);
-  renderLeaderboard();
+  submitScore(currentPlayerName, score);
 }
 
 startBtn.addEventListener('click', () => {
